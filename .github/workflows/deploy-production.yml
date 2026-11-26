@@ -75,9 +75,6 @@ jobs:
           fi
           echo "Linked project ref verified: $LINKED_REF"
 
-      - name: Check migration history
-        run: supabase migration list --remote
-
       - name: Validate pending migrations before applying
         run: supabase db push --remote --dry-run --yes
 
@@ -85,48 +82,12 @@ jobs:
         run: supabase db push --remote --yes
 
       - name: Verify critical database objects
+        # A single SELECT keeps this step read-only. PostgreSQL evaluates the
+        # division-by-zero branch only when an expectation fails, so the CLI
+        # exits non-zero without depending on jq or JSON parsing. The SQL is
+        # kept on one line because Supabase CLI 3.3.0 rejects a trailing newline.
         run: |
-          RESULT=$(supabase db query --remote --read-only --output-format json "
-            select
-              (9 - (select count(*) from information_schema.tables
-                    where table_schema = 'public'
-                      and table_name in (
-                        'profiles', 'material_categories', 'price_rates',
-                        'recyclers', 'role_requests', 'material_lots',
-                        'transactions', 'handover_records', 'scrap_listings'
-                      ))) as missing_tables,
-              (select count(*) from pg_tables
-                where schemaname = 'public'
-                  and tablename in (
-                    'profiles', 'material_categories', 'price_rates',
-                    'recyclers', 'role_requests', 'transactions',
-                    'handover_records', 'material_lots', 'scrap_listings'
-                  )
-                  and rowsecurity = false) as rls_disabled,
-              (7 - (select count(*) from pg_proc p
-                    join pg_namespace n on n.oid = p.pronamespace
-                    where n.nspname = 'public'
-                      and p.proname in (
-                        'approve_role_request', 'handle_new_user',
-                        'ensure_own_profile', 'handle_profiles_update',
-                        'is_admin', 'current_active_role', 'uuid_generate_v4'
-                      ))) as missing_functions,
-              (select count(*) from auth.users u
-                where not exists (select 1 from public.profiles p where p.id = u.id))
-                as missing_profiles,
-              (select case when has_table_privilege('authenticated', 'public.profiles', 'SELECT')
-                           then 0 else 1 end) as profiles_select_missing
-          ")
-          echo "$RESULT"
-          echo "$RESULT" | sed -n '/^{/,$p' | jq -e '
-            .rows[0] as $r
-            | ($r.missing_tables == 0)
-              and ($r.rls_disabled == 0)
-              and ($r.missing_functions == 0)
-              and ($r.missing_profiles == 0)
-              and ($r.profiles_select_missing == 0)
-          ' > /dev/null
-          echo "Hosted database objects and profile bootstrap verified."
+          supabase db query --remote --read-only "select case when (9 - (select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('profiles','material_categories','price_rates','recyclers','role_requests','material_lots','transactions','handover_records','scrap_listings'))) = 0 and (select count(*) from pg_tables where schemaname = 'public' and tablename in ('profiles','material_categories','price_rates','recyclers','role_requests','transactions','handover_records','material_lots','scrap_listings') and rowsecurity = false) = 0 and (7 - (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('approve_role_request','handle_new_user','ensure_own_profile','handle_profiles_update','is_admin','current_active_role','uuid_generate_v4'))) = 0 and (select count(*) from auth.users u where not exists (select 1 from public.profiles p where p.id = u.id)) = 0 and (select case when has_table_privilege('authenticated','public.profiles','SELECT') then 0 else 1 end) = 0 then 'OK' else (1 / (select 0))::text end as verification"
 
       - name: Production handoff
         run: |

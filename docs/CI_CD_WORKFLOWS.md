@@ -70,11 +70,12 @@ No service-role key, database password or Cloudflare token is required by the wo
 7. Authenticate Supabase CLI with `SUPABASE_ACCESS_TOKEN`
 8. Link to the project named by `SUPABASE_PROJECT_REF`
 9. Verify the linked project ref from `supabase/.temp/project-ref`
-10. Check migration history (`supabase migration list --remote`)
-11. Dry-run pending migrations (`supabase db push --remote --dry-run --yes`)
-12. Apply pending migrations (`supabase db push --remote --yes`)
-13. Verify critical tables, RLS, helper functions, profile backfill and `authenticated` SELECT grant through a read-only CLI query
-14. Hand off to Vercel Git integration, which deploys the verified `dist/` output from `main`
+10. Dry-run pending migrations (`supabase db push --remote --dry-run --yes`)
+11. Apply pending migrations (`supabase db push --remote --yes`)
+12. Verify critical tables, RLS, helper functions, profile backfill and `authenticated` SELECT grant through a single read-only CLI query
+13. Hand off to Vercel Git integration, which deploys the verified `dist/` output from `main`
+
+`supabase migration list --remote` is intentionally not used as a gate: `supabase db push --remote --dry-run --yes` already validates remote migration state and pending files, while the list command can fail on transient API responses without affecting whether migrations can be applied.
 
 ### Safety rules
 
