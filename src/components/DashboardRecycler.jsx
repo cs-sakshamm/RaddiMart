@@ -23,6 +23,7 @@ export default function DashboardRecycler() {
   const [facility, setFacility] = useState(null);
   const [offers, setOffers] = useState([]);
   const [state, setState] = useState(supabase ? 'loading' : 'error');
+  const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState(supabase ? '' : 'Supabase is not configured.');
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function DashboardRecycler() {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, reloadKey]);
 
   if (state === 'loading') {
     return (
@@ -73,11 +74,23 @@ export default function DashboardRecycler() {
       <div className="dashboard-page">
         <header className="dashboard-header">
           <DashboardNav role="recycler" />
-          <h1>Recycler Dashboard</h1>
+          <h1>Recycler dashboard</h1>
         </header>
         <main className="dashboard-main">
           <p className="form-error" role="alert">{error}</p>
-          <button className="btn btn-secondary" onClick={() => navigate('/signin')}>Go to sign in</button>
+          <div className="form-actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setError('');
+                setState('loading');
+                setReloadKey((key) => key + 1);
+              }}
+            >
+              Try again
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/signin')}>Go to sign in</button>
+          </div>
         </main>
       </div>
     );
@@ -88,7 +101,7 @@ export default function DashboardRecycler() {
       <div className="dashboard-page" aria-label="Recycler dashboard">
         <header className="dashboard-header">
           <DashboardNav role={profile?.active_role || 'consumer'} />
-          <h1>Recycler Dashboard</h1>
+          <h1>Recycler dashboard</h1>
         </header>
         <main className="dashboard-main">
           <section className="dashboard-section">
@@ -117,7 +130,7 @@ export default function DashboardRecycler() {
     <div className="dashboard-page" aria-label="Recycler dashboard">
       <header className="dashboard-header">
         <DashboardNav role="recycler" />
-        <h1>Recycler Dashboard</h1>
+        <h1>Recycler dashboard</h1>
         <p>{profile.full_name ? `Welcome, ${profile.full_name}` : 'Welcome back'}</p>
       </header>
 

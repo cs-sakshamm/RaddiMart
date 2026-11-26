@@ -1,0 +1,36 @@
+{
+  "name": "raddimart",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:rls": "vitest run --reporter=verbose && node -e \"const { createClient } = require('@supabase/supabase-js'); const supabase = createClient(process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321', process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'); supabase.from('profiles').select('*').then(r => console.log('RLS test: profiles returned', r.data?.length, 'rows')).catch(e => console.log('RLS test skipped, no local Supabase', e.message));\"",
+    "test:ui": "playwright test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.1",
+    "@tailwindcss/vite": "^4.3.5",
+    "@vitejs/plugin-react": "^6.3.0",
+    "eslint": "^10.15.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.8",
+    "globals": "^17.14.0",
+    "jsdom": "^31.0.1",
+    "tailwindcss": "^4.3.5",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

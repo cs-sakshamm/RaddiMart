@@ -1,0 +1,20 @@
+# Local authentication. Email confirmation is disabled so signup creates an
+# authenticated session immediately (no verification step). The hosted project
+# must match this setting in the Supabase dashboard.
+#
+# Both the dev server and the Playwright preview are allowed origins. These URLs
+# are local only; the cloud project's redirect allowlist is managed in the
+# Supabase dashboard.
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/**",
+  "http://127.0.0.1:5173/**",
+  "http://localhost:4173/**",
+  "http://127.0.0.1:4173/**",
+]
+
+# Email confirmation is disabled so that signup creates an immediate
+# authenticated session. Users can sign in right away without verifying.
+[auth.email]
+enable_confirmations = false

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Vite / test caches
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Generated test artifacts
+test-results/
+playwright-report/
+reports/
+
+# Agent scratch output
+.tmp/
+.hallmark/
+scripts/.tmp-*
+
+# Agent tooling skills (reconstructable from skills-lock.json)
+.agents/
+
+# Supabase local CLI state
+supabase/.temp/
+supabase/.branches/
+supabase/.logs/

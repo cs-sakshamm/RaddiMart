@@ -106,7 +106,7 @@ export default function RecyclerOffers() {
       <div className="dashboard-page">
         <header className="dashboard-header">
           <DashboardNav role="recycler" />
-          <h1>Incoming Offers</h1>
+          <h1>Incoming offers</h1>
         </header>
         <main className="dashboard-main">
           <p className="form-error" role="alert">{error}</p>
@@ -123,7 +123,7 @@ export default function RecyclerOffers() {
       <div className="dashboard-page">
         <header className="dashboard-header">
           <DashboardNav role={profile.active_role} />
-          <h1>Incoming Offers</h1>
+          <h1>Incoming offers</h1>
         </header>
         <main className="dashboard-main">
           <section className="dashboard-section">
@@ -142,7 +142,7 @@ export default function RecyclerOffers() {
     <div className="dashboard-page" aria-label="Recycler incoming offers">
       <header className="dashboard-header">
         <DashboardNav role="recycler" />
-        <h1>Incoming Offers</h1>
+        <h1>Incoming offers</h1>
         <p>Review the material, then accept or decline each offer for your facility.</p>
       </header>
 

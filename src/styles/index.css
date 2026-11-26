@@ -1,0 +1,6 @@
+/* Hallmark · shape: foundation tokens · genre: modern-minimal · theme: Dose (deal 2/3, seed raddimart-responsive-four-stakeholder-recycling-33d6·617b1d49·2026-11-24·r0) · primary: #107357 (owner-supplied) · v2.0.0 */
+/* Hallmark · pre-emit critique: P_ H_ E_ S_ R_ V_ · weakest: S_, no product screens built in Phase 0; this file carries tokens and floor rules only */
+/* Hallmark · waive 26b · not a form control, no aria-disabled anywhere · No interactive controls ship in the Phase 0 foundation screen */
+@import 'tailwindcss';
+@import './tokens.css';
+@import './base.css';

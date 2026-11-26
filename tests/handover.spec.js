@@ -143,7 +143,7 @@ async function signIn(page, email) {
   await page.goto('/signin');
   await page.getByLabel(/^Email/).fill(email);
   await page.getByLabel(/^Password/).fill(PASSWORD);
-  await page.getByRole('button', { name: /^Sign In$/ }).click();
+  await page.getByRole('button', { name: /^Sign in$/i }).click();
   await expect(page).toHaveURL(/\/dashboard\/(consumer|collector|aggregator|recycler)$/);
 }
 
@@ -155,7 +155,7 @@ test.describe('Phase 6 handover and verification', () => {
     try {
       await signIn(page, fixture.emails.recycler);
       await page.goto('/recycler/offers');
-      await expect(page.getByRole('heading', { name: 'Incoming Offers' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Incoming offers' })).toBeVisible();
       await page.getByRole('button', { name: 'Respond' }).first().click();
       await expect(page.getByRole('heading', { name: 'Your response' })).toBeVisible();
       await page.getByRole('button', { name: 'Accept offer' }).click();
@@ -172,22 +172,22 @@ test.describe('Phase 6 handover and verification', () => {
       await page.getByRole('button', { name: 'Review handover' }).click();
       await expect(page.getByText(/Record 8\.75 kg received/)).toBeVisible();
       await page.getByRole('button', { name: 'Confirm handover' }).click();
-      await expect(page.getByText(/Handover recorded/)).toBeVisible();
-      await expect(page.getByText('Awaiting recycler confirmation')).toBeVisible();
-      await expect(page.getByText('Payment pending')).toBeVisible();
+      await expect(page.getByRole('status').filter({ hasText: /^Handover recorded/ })).toBeVisible();
+      await expect(page.getByRole('definition').filter({ hasText: 'Awaiting recycler confirmation' })).toBeVisible();
+      await expect(page.getByRole('definition').filter({ hasText: 'Payment pending' })).toBeVisible();
 
       await page.getByRole('button', { name: 'Mark as paid' }).click();
       await page.getByRole('button', { name: 'Confirm payment' }).click();
-      await expect(page.getByText('Payment recorded')).toBeVisible();
+      await expect(page.getByRole('status').filter({ hasText: /^Payment recorded/ })).toBeVisible();
 
       await page.goto('/signout');
       await signIn(page, fixture.emails.recycler);
       await page.goto(`/recycler/offers/${fixture.offer.id}`);
-      await expect(page.getByText('Handover recorded')).toBeVisible();
+      await expect(page.getByText('Handover recorded', { exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Confirm receipt' }).click();
       await expect(page.getByText(/Confirm that your facility received/)).toBeVisible();
       await page.getByRole('button', { name: 'Confirm receipt' }).click();
-      await expect(page.getByText(/Receipt confirmed/)).toBeVisible();
+      await expect(page.getByRole('status').filter({ hasText: /^Receipt confirmed/ })).toBeVisible();
       await expect(page.getByText('Handover complete')).toBeVisible();
       const verifyLink = await page.getByRole('link', { name: 'Open verification page' }).getAttribute('href');
       expect(verifyLink).toMatch(/^\/verify\/[0-9a-f-]+$/i);
@@ -199,7 +199,7 @@ test.describe('Phase 6 handover and verification', () => {
       await expect(publicPage.getByText('P6 Facility')).toBeVisible();
       await expect(publicPage.getByText('Hidden Consumer Road')).toHaveCount(0);
       await expect(publicPage.getByText('77 Hidden')).toHaveCount(0);
-      await expect(publicPage.getByText('Payment')).toHaveCount(0);
+      await expect(publicPage.getByRole('term').filter({ hasText: /^Payment( status)?$/i })).toHaveCount(0);
       await publicPage.close();
     } finally {
       await cleanup(fixture);

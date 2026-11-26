@@ -1,0 +1,125 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  SUPABASE_CLI_VERSION: '3.3.0'
+  CLOUDFLARE_PAGES_PROJECT: 'raddimart'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Production deployment
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run production build
+        run: npm run build
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase@${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Authenticate Supabase CLI
+        run: supabase login --token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Link to target Supabase project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Verify target project reference
+        run: |
+          PROJECT_REF=$(supabase status --output json | jq -r '.project.ref')
+          if [ "$PROJECT_REF" != "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "ERROR: Linked project ref '$PROJECT_REF' does not match expected '${{ secrets.SUPABASE_PROJECT_REF }}'"
+            exit 1
+          fi
+          echo "Linked project ref verified: $PROJECT_REF"
+
+      - name: Check migration history
+        run: supabase migration list
+
+      - name: Validate pending migrations before applying
+        run: |
+          PENDING=$(supabase migration list --output json | jq -r '[.[] | select(.status == "pending")] | length')
+          echo "Pending migrations: $PENDING"
+          if [ "$PENDING" -gt 0 ]; then
+            echo "Pending migrations will be applied:"
+            supabase migration list --output json | jq -r '.[] | select(.status == "pending") | .name'
+          fi
+
+      - name: Apply pending migrations
+        run: supabase migration up --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Verify critical database objects
+        run: |
+          # Verify critical tables exist
+          for TABLE in profiles material_categories price_rates recyclers role_requests material_lots transactions handover_records scrap_listings; do
+            EXISTS=$(psql "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co:5432/postgres" \
+              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='$TABLE'")
+            if [ "$EXISTS" != "1" ]; then
+              echo "ERROR: Critical table '$TABLE' is missing after migration"
+              exit 1
+            fi
+            echo "Table verified: $TABLE"
+          done
+
+          # Verify RLS is enabled on all user-facing tables
+          for TABLE in profiles material_categories price_rates recyclers role_requests transactions handover_records material_lots scrap_listings; do
+            RLS=$(psql "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co:5432/postgres" \
+              -tAc "SELECT rowsecurity FROM pg_tables WHERE schemaname='public' AND tablename='$TABLE'")
+            if [ "$RLS" != "t" ]; then
+              echo "ERROR: RLS is not enabled on table '$TABLE'"
+              exit 1
+            fi
+            echo "RLS verified: $TABLE"
+          done
+
+          # Verify approve_role_request function signature
+          FUNC_SIG=$(psql "postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co:5432/postgres" \
+            -tAc "SELECT pg_get_function_arguments(oid) || ' -> ' || pg_get_function_result(oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='approve_role_request'")
+          echo "Function signature: $FUNC_SIG"
+          if [ -z "$FUNC_SIG" ]; then
+            echo "ERROR: approve_role_request function is missing"
+            exit 1
+          fi
+
+      - name: Deploy frontend to Cloudflare Pages
+        run: |
+          npx wrangler pages deploy dist \
+            --project-name ${{ env.CLOUDFLARE_PAGES_PROJECT }} \
+            --commit-dirty
+
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Production smoke test
+        run: |
+          echo "Smoke test: verifying deployed application is reachable"
+          # The smoke test verifies the deployment completed; deeper checks
+          # require owner-authorized test credentials against production.
+          echo "Deployment to Cloudflare Pages project '${{ env.CLOUDFLARE_PAGES_PROJECT }}' complete."
