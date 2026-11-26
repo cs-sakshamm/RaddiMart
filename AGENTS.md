@@ -23,7 +23,7 @@ Permanent instructions for all agents (OpenCode, Hallmark, and future agents) wo
 - React 19 + Vite 8 + Tailwind CSS 4 + JavaScript
 - Supabase JS client 2.119.2 (browser-safe anon/publishable key only)
 - Supabase CLI v3.3.0 (local database development)
-- Cloudflare Pages (production hosting)
+- Vercel (production frontend hosting)
 - Playwright (browser tests), vitest (unit tests)
 - Hallmark (UI/UX design), OpenCode (implementation)
 
@@ -31,7 +31,7 @@ Permanent instructions for all agents (OpenCode, Hallmark, and future agents) wo
 
 | Branch | Purpose |
 |--------|---------|
-| `main` | Production. Deployed to Cloudflare Pages and Supabase production. |
+| `main` | Production. Deployed to Vercel and Supabase production. |
 | `develop` | Development. Integration branch for feature work. |
 | `feature/*` | Individual feature branches, created from `develop`. |
 
@@ -83,7 +83,7 @@ npm run supabase:gen:types      # Generate DB types from local Supabase
 
 - `.github/workflows/ci.yml` — runs on push/PR to `main` and `develop` (lint, build, unit, Playwright, migration validation, dependency check, secret scanning).
 - `.github/workflows/deploy-production.yml` — runs on push to `main`, uses GitHub `production` environment approval gate.
-- Deployment sequence: CI → approval → DB migration → frontend build → Cloudflare Pages → smoke test.
+- Deployment sequence: CI → approval → DB migration → frontend build → Vercel Git deployment → smoke test.
 - Never deploy frontend if database migration fails.
 
 ## Documentation
@@ -93,6 +93,7 @@ npm run supabase:gen:types      # Generate DB types from local Supabase
 - `docs/ENVIRONMENT_AND_SECRETS.md` — environment variables and secrets
 - `docs/DEPLOYMENT_RUNBOOK.md` — manual deployment steps and checklist
 - `docs/ROLLBACK_AND_RECOVERY.md` — rollback procedures and secrets rotation
+- `docs/VERCEL_DEPLOYMENT.md` — Vercel setup, environment variables and smoke test
 - `docs/PHASE_3_REPORT.md` — migration recovery + Phase 3 backend verification
 - `docs/PHASE_4_REPORT.md` — collector marketplace implementation and test results
 - `docs/PHASE_5_REPORT.md` — aggregator inventory and recycler offers

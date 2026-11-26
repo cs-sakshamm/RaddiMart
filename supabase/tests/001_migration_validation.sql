@@ -103,7 +103,7 @@ WHERE schemaname = 'public'
 -- ============================================================
 SELECT
   'role_mapping_comment' AS test,
-  objdescription('scrap_listings'::regclass, 'pg_class') AS comment;
+  obj_description('scrap_listings'::regclass::oid, 'pg_class') AS comment;
 
 -- ============================================================
 -- 8. Critical indexes exist
