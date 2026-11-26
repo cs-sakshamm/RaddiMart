@@ -107,6 +107,10 @@ jobs:
     name: Local migration validation
     runs-on: ubuntu-latest
     needs: lint-and-build
+    env:
+      # Local Supabase uses the documented development password. This is not a
+      # secret; it is only used by psql against the ephemeral 127.0.0.1 stack.
+      PGPASSWORD: postgres
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
