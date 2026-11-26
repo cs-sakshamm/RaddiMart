@@ -4,25 +4,27 @@
 
 | Scenario | Rollback method | Data impact |
 |----------|----------------|-------------|
-| Frontend deployment fails | Revert to previous Cloudflare Pages deployment | None |
-| Database migration fails partway | Fix migration, re-apply; do not reset | None (migrations are additive) |
-| Bad migration applied to production | Create new reverting migration; apply via `supabase migration up` | Controlled by reverting migration |
-| Supabase credentials leaked | Rotate `SUPABASE_ACCESS_TOKEN`, regenerate keys | None |
+| Frontend deployment fails | Promote the previous successful Vercel deployment | None |
+| Database migration fails partway | Fix migration and re-apply with `supabase db push`; do not reset | None (migrations are additive) |
+| Bad migration applied to production | Create a new forward-only correcting migration and apply it | Controlled by the correcting migration |
+| Supabase access token leaked | Rotate `SUPABASE_ACCESS_TOKEN` in GitHub secrets | None |
 
-## Frontend rollback (Cloudflare Pages)
+## Frontend rollback (Vercel)
 
-Cloudflare Pages keeps previous deployments. To roll back:
+Vercel keeps previous deployments. To roll back:
 
-1. Go to Cloudflare Pages → `raddimart` project → Deployments.
-2. Select the previous successful deployment.
-3. Click "Rollback to this deployment" or redeploy that version.
+1. Go to Vercel → `RaddiMart` project → Deployments.
+2. Find the last known-good Production deployment.
+3. Open the deployment menu and choose **Promote to Production**.
 
-Alternatively, revert the Git commit and re-trigger the GitHub Actions deployment:
+Alternatively, revert the Git commit and let Vercel redeploy `main`:
 
 ```powershell
 git revert <bad-commit-hash>
 git push origin main
 ```
+
+If the bad Vercel deployment came from an environment-variable change, correct the variable in the Vercel dashboard and redeploy.
 
 ## Database migration rollback
 
@@ -30,9 +32,9 @@ Supabase migrations are **additive and forward-only**. There is no automatic `do
 
 ### If a migration fails partway
 
-1. Check `supabase migration list` to see which migrations applied.
+1. Check migration history with `supabase migration list --remote`.
 2. Fix the failing migration file.
-3. Re-run `supabase migration up`.
+3. Re-run `supabase db push --remote --dry-run --yes`, then `supabase db push --remote --yes`.
 4. Do NOT run `supabase db reset` (this destroys all data and is forbidden remotely).
 
 ### If a bad migration is applied to production
@@ -43,8 +45,8 @@ Supabase migrations are **additive and forward-only**. There is no automatic `do
    npm run supabase:migration:new
    ```
 3. Write SQL in the new migration to undo or fix the bad change.
-4. Apply via `supabase migration up --password $env:SUPABASE_DB_PASSWORD`.
-5. Verify critical database objects (tables, RLS, functions, indexes).
+4. Apply via `supabase db push --remote --yes`.
+5. Verify critical database objects (tables, RLS, functions, indexes, profile backfill and grants).
 
 ## Secrets rotation
 
@@ -54,16 +56,11 @@ Supabase migrations are **additive and forward-only**. There is no automatic `do
 2. Update `SUPABASE_ACCESS_TOKEN` in GitHub repository secrets.
 3. Old token is immediately invalidated.
 
-### Rotating Supabase database password
+### Rotating Supabase publishable/anon key
 
-1. Change the password in Supabase dashboard → Database → Settings.
-2. Update `SUPABASE_DB_PASSWORD` in GitHub repository secrets.
-3. Update `.env` locally if using local Supabase.
-
-### Rotating Cloudflare API token
-
-1. Generate a new token in Cloudflare dashboard → My Profile → API Tokens.
-2. Update `CLOUDFLARE_API_TOKEN` in GitHub repository secrets.
+1. Regenerate the browser-safe key in Supabase Dashboard → Project Settings → API.
+2. Update `VITE_SUPABASE_PUBLISHABLE_KEY` (or `VITE_SUPABASE_ANON_KEY`) in Vercel.
+3. Redeploy the Production environment so the new value is compiled into the frontend.
 
 ## Disaster recovery
 
@@ -71,7 +68,7 @@ Supabase migrations are **additive and forward-only**. There is no automatic `do
 
 1. Contact Supabase support to restore project access.
 2. Re-link the CLI: `supabase link --project-ref <ref>`.
-3. Verify migration history: `supabase migration list`.
+3. Verify migration history: `supabase migration list --remote`.
 
 ### Accidental data deletion
 
@@ -79,17 +76,18 @@ Supabase migrations are **additive and forward-only**. There is no automatic `do
 2. On the free plan, restore from any available backup or re-apply migrations.
 3. Application data must be re-entered by users.
 
-### Cloudflare Pages project deleted
+### Vercel project deleted
 
-1. Recreate the Pages project named `raddimart`.
-2. Reconnect the GitHub repository or re-trigger GitHub Actions deployment.
-3. Reconfigure environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+1. Recreate the Vercel project from `cs-sakshamm/RaddiMart` with `main` as the Production branch.
+2. Confirm `vercel.json` build settings and Node 22.x.
+3. Reconfigure `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+4. Update Supabase Auth redirect URLs to the new Vercel domain.
 
 ## Emergency contacts
 
 - Project owner: deployment authorization, business decisions
-- Supabase support: database infrastructure issues
-- Cloudflare support: Pages hosting issues
+- Supabase support: database and auth infrastructure issues
+- Vercel support: frontend hosting and deployment issues
 
 ## What NOT to do during rollback
 

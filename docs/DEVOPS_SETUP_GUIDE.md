@@ -4,19 +4,19 @@ This guide covers the complete DevOps and CI/CD automation setup for RADDIMART.
 
 ## Prerequisites
 
-- Node.js 20.19+ or 22.12+ (Node 24 verified)
+- Node.js 22.12+ (Vite 8 and Vitest 5 require it; Node 24 is verified locally)
 - npm
 - Docker Desktop (for local Supabase development)
-- Supabase CLI (v3.3.0 or later)
+- Supabase CLI v3.3.0 or later
 - GitHub account with access to the `cs-sakshamm/RaddiMart` repository
-- Cloudflare account with Pages enabled
+- Vercel account with Git integration enabled
 - One Supabase cloud project (no second project is created or required)
 
 ## Repository branches
 
 | Branch | Purpose |
 |--------|---------|
-| `main` | Production. Deployed to Cloudflare Pages and Supabase production. |
+| `main` | Production. Deployed to Vercel and Supabase production. |
 | `develop` | Development. Integration branch for feature work. |
 | `feature/*` | Individual feature branches, created from `develop`. |
 
@@ -28,7 +28,7 @@ This guide covers the complete DevOps and CI/CD automation setup for RADDIMART.
 git clone https://github.com/cs-sakshamm/RaddiMart.git
 cd RaddiMart
 git checkout develop
-npm install
+npm ci
 ```
 
 ### 2. Environment variables
@@ -74,8 +74,12 @@ npm run supabase:migration:up
 Run migration validation tests:
 
 ```powershell
+$env:PGPASSWORD = 'postgres'
 psql -h localhost -p 54322 -U postgres -d postgres -f supabase/tests/001_migration_validation.sql
+psql -h localhost -p 54322 -U postgres -d postgres -f supabase/tests/002_phase3_phase4_rls_validation.sql
 ```
+
+`postgres` is the documented development password for the ephemeral local stack only.
 
 Reset only the local database (never remote):
 
@@ -121,9 +125,8 @@ Configure these in GitHub repository **Settings → Secrets and variables → Ac
 |--------|---------|
 | `SUPABASE_ACCESS_TOKEN` | Supabase CLI personal access token |
 | `SUPABASE_PROJECT_REF` | Supabase project reference ID |
-| `SUPABASE_DB_PASSWORD` | Supabase database password (postgres) |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Pages edit permission |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+
+No database password, service-role key or Cloudflare token is required by the workflows. Vercel environment variables are configured in the Vercel dashboard.
 
 ## GitHub Environments required
 
@@ -132,13 +135,12 @@ Create a **production** environment in GitHub (**Settings → Environments → p
 - Add required reviewers (approval gate)
 - No deployment bypass rules
 
-## Cloudflare Pages setup
+## Vercel setup
 
-1. Create a Cloudflare Pages project named `raddimart`.
-2. Connect the GitHub repository `cs-sakshamm/RaddiMart`.
-3. Build command: `npm run build`
-4. Output directory: `dist`
-5. Add environment variables in Pages settings:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY` (or `VITE_SUPABASE_PUBLISHABLE_KEY`)
-6. Do NOT enable Git integration deployment in the Cloudflare dashboard if using GitHub Actions deployment (avoids competing deployments).
+1. Import `cs-sakshamm/RaddiMart` in Vercel.
+2. Keep the committed `vercel.json` settings: Vite framework, `npm ci`, `npm run build`, `dist` output and SPA rewrite.
+3. Set the Node.js version to **22.x** in Project Settings.
+4. Add the browser-safe Supabase environment variables in the Vercel dashboard for Production, Preview and Development.
+5. Set the Supabase Auth redirect URLs to the Vercel domain.
+
+See `docs/VERCEL_DEPLOYMENT.md` for the exact steps and smoke test.
