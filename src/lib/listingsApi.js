@@ -61,6 +61,7 @@ export async function fetchCatalogue(supabase) {
   const subcategories = (categories || []).filter((c) => c.parent_id);
   const rateByCategory = {};
   (rates || []).forEach((rate) => {
+    if (rate.is_active === false) return;
     if (rate.category_id) rateByCategory[rate.category_id] = Number(rate.rate_per_kg);
   });
 

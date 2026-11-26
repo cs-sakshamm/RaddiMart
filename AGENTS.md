@@ -99,6 +99,7 @@ npm run supabase:gen:types      # Generate DB types from local Supabase
 - `docs/PHASE_5_REPORT.md` — aggregator inventory and recycler offers
 - `docs/PHASE_5_DESIGN.md` — approved Phase 5 design specification
 - `docs/PHASE_7_REPORT.md` — Phase 7 UI/UX refinement, functional fixes, auth root cause and test results
+- `docs/MATERIAL_CATEGORIES_FIX_REPORT.md` — hosted catalogue bootstrap, listing validation and focused mobile review
 - `docs/AUTH_SIGNUP_SIGNIN_REPAIR.md` — Sign up / sign in root causes, auth state model, tests and manual Supabase steps
 - `docs/HALLMARK_PHASE_7_REVIEW.md` — Phase 7 design review and corrections
 - `docs/HALLMARK_UI_REVIEW.md` — UI/UX review and readiness assessment

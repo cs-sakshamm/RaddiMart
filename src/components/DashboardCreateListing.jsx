@@ -14,6 +14,7 @@ export default function DashboardCreateListing() {
   const [catalogue, setCatalogue] = useState({ categories: [], rateByCategory: {} });
   const [catalogueState, setCatalogueState] = useState(supabase ? 'loading' : 'error'); // loading | ready | error
   const [catalogueError, setCatalogueError] = useState(supabase ? '' : 'Supabase is not configured.');
+  const [catalogueAttempt, setCatalogueAttempt] = useState(0);
 
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -44,7 +45,7 @@ export default function DashboardCreateListing() {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, catalogueAttempt]);
 
   const selectedCategory = useMemo(
     () => catalogue.categories.find((c) => c.id === categoryId) || null,
@@ -54,6 +55,12 @@ export default function DashboardCreateListing() {
   const activeRate = categoryId ? catalogue.rateByCategory[categoryId] : undefined;
   const indicativePrice = calculateIndicativePrice(weight, activeRate);
 
+  const retryCatalogue = () => {
+    setCatalogueState('loading');
+    setCatalogueError('');
+    setCatalogueAttempt((attempt) => attempt + 1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -61,6 +68,17 @@ export default function DashboardCreateListing() {
 
     if (!categoryId || !condition || !pickupAddress.trim()) {
       setError('Please choose a material category and condition, and enter the pickup address.');
+      return;
+    }
+    if (!catalogue.categories.some((category) => category.id === categoryId)) {
+      setError('Choose a valid material category.');
+      return;
+    }
+    if (
+      subcategoryId &&
+      !selectedCategory?.subcategories.some((subcategory) => subcategory.id === subcategoryId)
+    ) {
+      setError('Choose a valid subcategory for this material category.');
       return;
     }
     if (!(Number.parseFloat(weight) > 0)) {
@@ -117,12 +135,22 @@ export default function DashboardCreateListing() {
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-notice" role="status">{notice}</p>}
 
-        {catalogueState === 'loading' && <p>Loading the material catalogue…</p>}
+        {catalogueState === 'loading' && <p role="status">Loading the material catalogue…</p>}
 
         {catalogueState === 'error' && (
-          <p className="form-error" role="alert">
-            {catalogueError} You cannot create a listing until the catalogue is available.
-          </p>
+          <div className="catalogue-error">
+            <p className="form-error" role="alert">
+              {catalogueError} You cannot create a listing until the catalogue is available.
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={retryCatalogue}
+              disabled={!supabase}
+            >
+              Retry loading catalogue
+            </button>
+          </div>
         )}
 
         {catalogueState === 'ready' && catalogue.categories.length === 0 && (
